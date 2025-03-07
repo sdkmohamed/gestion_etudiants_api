@@ -1,14 +1,20 @@
-# Utilise l'image officielle de Java
+# Utilise une image OpenJDK 21 légère
 FROM openjdk:21-jdk-slim
+
+# Installer Maven proprement
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 
 # Définit le répertoire de travail
 WORKDIR /app
 
-# Copie le fichier JAR généré dans l'image
-COPY target/gestion-etudiants-0.0.1-SNAPSHOT.jar app.jar
+# Copie tous les fichiers du projet dans le conteneur
+COPY . .
+
+# Compile et génère le .jar
+RUN mvn clean package -DskipTests
 
 # Expose le port 8080
 EXPOSE 8080
 
-# Commande pour exécuter l'application
-CMD ["java", "-jar", "app.jar"]
+# Exécute l'application
+CMD ["java", "-jar", "target/gestion-etudiants-0.0.1-SNAPSHOT.jar"]

@@ -1,53 +1,64 @@
 package com.example.gestion_etudiants.controller;
 
 import com.example.gestion_etudiants.entity.Student;
-import com.example.gestion_etudiants.service.StudentService;
+import com.example.gestion_etudiants.repositor.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173") // ✅ Autorise les requêtes du frontend
 @RestController
 @RequestMapping("/students")
 public class StudentController {
-    @Autowired
-    private StudentService studentService;
 
+    @Autowired
+    private StudentRepository studentRepository;
+
+    // ➤ Ajouter un étudiant
+    @PostMapping
+    public Student createStudent(@RequestBody Student student) {
+        student.setId(null); // S'assurer que l'ID est bien null pour que la BDD le génère
+        return studentRepository.save(student);
+    }
+
+    // ➤ Récupérer tous les étudiants
     @GetMapping
     public List<Student> getAllStudents() {
-        return studentService.getAllStudents();
+        return studentRepository.findAll();
     }
 
+    // ➤ Récupérer un étudiant par son ID
     @GetMapping("/{id}")
-    public ResponseEntity<Student> getStudentById(@PathVariable Long id) {
-        return studentService.getStudentById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public Student getStudentById(@PathVariable Long id) {
+        return studentRepository.findById(id).orElse(null);
     }
 
-    @PostMapping
-    public ResponseEntity<Student> createStudent(@RequestBody Student student) {
-        Student createdStudent = studentService.createStudent(student);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
-    }
-
+    // ➤ Mettre à jour un étudiant
     @PutMapping("/{id}")
-    public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student student) {
-        return ResponseEntity.ok(studentService.updateStudent(id, student));
+    public Student updateStudent(@PathVariable Long id, @RequestBody Student studentDetails) {
+        Optional<Student> optionalStudent = studentRepository.findById(id);
+        if (optionalStudent.isPresent()) {
+            Student student = optionalStudent.get();
+            student.setFirstname(studentDetails.getFirstname());
+            student.setAge(studentDetails.getAge());
+            student.setEmail(studentDetails.getEmail());
+            student.setAddress(studentDetails.getAddress());
+            student.setPhoneNumber(studentDetails.getPhoneNumber());
+            return studentRepository.save(student);
+        }
+        return null;
     }
 
+    // ➤ Supprimer un étudiant
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
-        studentService.deleteStudent(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    // ✅ Nouvelle API pour importer plusieurs étudiants
-    @PostMapping("/import-students")
-    public ResponseEntity<List<Student>> importStudents(@RequestBody List<Student> students) {
-        List<Student> importedStudents = studentService.importStudents(students);
-        return ResponseEntity.status(HttpStatus.CREATED).body(importedStudents);
+    public String deleteStudent(@PathVariable Long id) {
+        if (studentRepository.existsById(id)) {
+            studentRepository.deleteById(id);
+            return "Étudiant supprimé avec succès.";
+        } else {
+            return "Étudiant introuvable.";
+        }
     }
 }

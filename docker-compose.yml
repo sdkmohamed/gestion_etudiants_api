@@ -1,8 +1,7 @@
-version: "3.8"
 
 services:
-  # Service MySQL
-  mysql:
+  # Base de données MySQL
+  mysql-gestion-etudiants:
     image: mysql:8.0
     container_name: mysql-gestion-etudiants
     restart: always
@@ -17,37 +16,34 @@ services:
       - backend-network
     volumes:
       - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uuser", "-ppassword"]
-      interval: 10s
-      retries: 5
-      timeout: 5s
 
-  # Service Backend (Spring Boot API)
-  api:
-    build: .
+  # Backend Spring Boot
+  gestion-etudiants-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: gestion-etudiants-api
+    restart: always
     depends_on:
-      mysql:
-        condition: service_healthy  # Attend que MySQL soit prêt avant de démarrer
+      - mysql-gestion-etudiants
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/gestion_etudiants?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-gestion-etudiants:3306/gestion_etudiants?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     ports:
       - "8080:8080"
     networks:
       - backend-network
 
-  # Service Frontend (Vue.js)
-  frontend:
-    build: ./frontend
-    container_name: gestion-etudiants-frontend
+  # Frontend Vue.js
+  frontend-gestion-etudiants:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-gestion-etudiants
+    restart: always
     depends_on:
-      - api
-    environment:
-      VUE_APP_BACKEND_URL: http://gestion-etudiants-api:8080  # Assure la bonne communication
+      - gestion-etudiants-api
     ports:
       - "5173:5173"
     networks:
